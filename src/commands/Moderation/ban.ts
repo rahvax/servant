@@ -1,4 +1,4 @@
-import { Discord, Slash, SlashOption } from "discordx";
+import { Discord, Slash, SlashOption, Guard } from "discordx";
 import { Category } from "@discordx/utilities";
 import {
     CommandInteraction,
@@ -6,20 +6,22 @@ import {
     GuildMember,
     ApplicationCommandOptionType,
 } from "discord.js";
+import { BanPerm } from "../../guards/punishPerm.js";
 
 @Discord()
 @Category("Moderation")
 export default class BanCommand {
     @Slash({
-        name: "banir",
+        name: "ban",
         description: "banir um membro do servidor.",
     })
+    @Guard(BanPerm)
     async ban(
         @SlashOption({
             name: "member",
             description: "membro para banir",
             required: true,
-            type: ApplicationCommandOptionType.Mentionable,
+            type: ApplicationCommandOptionType.User,
         })
         member: GuildMember | null,
         @SlashOption({
@@ -37,18 +39,13 @@ export default class BanCommand {
         );
 
         if (!member || member.id == interaction.user.id)
-            return interaction.reply(
-                `O membro mencionado não pode ser banido.`,
-            );
-
+            return interaction.reply(`Não é possível banir este membro.`);
+        else if (member.id == interaction.client.user.id)
+            return interaction.reply(`Não é possível me banir.`);
         const memberRole = member?.roles.highest.position;
         if (!memberRole)
             return interaction.reply(
                 `Não foi possível capturar a posição do cargo.`,
-            );
-        if (!author?.permissions.has(PermissionFlagsBits.BanMembers))
-            return interaction.reply(
-                `Você não tem permissão para banir um membro.`,
             );
         else if (
             !interaction.guild?.members.me?.permissions.has(

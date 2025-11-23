@@ -1,4 +1,4 @@
-import { Discord, Slash, SlashOption } from "discordx";
+import { Discord, Slash, SlashOption, Guard } from "discordx";
 import { Category } from "@discordx/utilities";
 import {
     CommandInteraction,
@@ -6,20 +6,22 @@ import {
     GuildMember,
     ApplicationCommandOptionType,
 } from "discord.js";
+import { KickPerm } from "../../guards/punishPerm.js";
 
 @Discord()
 @Category("Moderation")
 export default class KickCommand {
     @Slash({
-        name: "expulsar",
+        name: "kick",
         description: "expulsar um membro do servidor.",
     })
-    async kick(
+    @Guard(KickPerm)
+    async ban(
         @SlashOption({
             name: "member",
             description: "membro para expulsar",
             required: true,
-            type: ApplicationCommandOptionType.Mentionable,
+            type: ApplicationCommandOptionType.User,
         })
         member: GuildMember | null,
         @SlashOption({
@@ -37,18 +39,13 @@ export default class KickCommand {
         );
 
         if (!member || member.id == interaction.user.id)
-            return interaction.reply(
-                `O membro mencionado não pode ser expulso.`,
-            );
-
+            return interaction.reply(`Não é possível expulsar este membro.`);
+        else if (member.id == interaction.client.user.id)
+            return interaction.reply(`Não é possível me expulsar.`);
         const memberRole = member?.roles.highest.position;
         if (!memberRole)
             return interaction.reply(
                 `Não foi possível capturar a posição do cargo.`,
-            );
-        if (!author?.permissions.has(PermissionFlagsBits.KickMembers))
-            return interaction.reply(
-                `Você não tem permissão para expulsar um membro.`,
             );
         else if (
             !interaction.guild?.members.me?.permissions.has(
